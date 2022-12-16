@@ -10,6 +10,15 @@ function setHeader(res, status) {
   res.writeHead(status, { "Content-type": "application/json" });
 }
 
+function sendEnum(res, name, value) {
+  const keys = value?.map((el) => Object.keys(el)?.[0]);
+  res.end(
+    `{"message": "Please select one of the following ${name} : ${keys.map(
+      (el) => "\n/" + el
+    )}\n"}`
+  );
+}
+
 function reqHandler(req, res) {
   const { url, method } = req;
   const urlSplited = url.split("/");
@@ -26,11 +35,11 @@ function reqHandler(req, res) {
 
   if (!db || db == "/" || !selectedDb) {
     setHeader(res, 404);
-    res.end('{"message" : "no database selected"}');
+    sendEnum(res, "DataBases", data);
   } else {
     if (!route || route == "/" || !selectedRoute) {
-      setHeader(res, 404);
-      res.end('{"message" : "no route selected"}');
+      setHeader(res, 200);
+      sendEnum(res, "Routes", selectedDb);
     } else {
       if (method == "GET") {
         if (!id || id == "/" || !selectedProperty) {
@@ -41,10 +50,19 @@ function reqHandler(req, res) {
           res.end(JSON.stringify(selectedProperty));
         }
       } else if (method == "POST") {
+        //creaate db
+        //creaate table
+        //create property
         setHeader(res, 200);
       } else if (method == "PUT") {
+        //edit db
+        //edit table
+        //edit property
         setHeader(res, 200);
       } else if (method == "DELETE") {
+        //delete db
+        //delete table
+        //delete property
         setHeader(res, 200);
       }
     }
