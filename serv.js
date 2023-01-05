@@ -1,7 +1,6 @@
 const http = require("http");
 const fs = require("fs");
-
-const { db: data } = require("./db");
+const data = require("./db.json");
 
 const port = 8000;
 const hostname = "localhost";
@@ -19,6 +18,19 @@ function sendEnum(res, name, value) {
   );
 }
 
+function writeFile(res, content) {
+  fs.writeFile("./db.js", content, (err) => {
+    if (err) {
+      console.error(err);
+    }
+    setHeader(res, 200);
+  });
+}
+
+function isDefined(variable) {
+  return variable != undefined;
+}
+
 function reqHandler(req, res) {
   const { url, method } = req;
   const urlSplited = url.split("/");
@@ -33,13 +45,40 @@ function reqHandler(req, res) {
   const id = urlSplited[3];
   const selectedProperty = selectedRoute?.find((el) => el.id == id);
 
-  if (!db || db == "/" || !selectedDb) {
-    setHeader(res, 404);
-    sendEnum(res, "DataBases", data);
+  if (!db || db == "/" || selectedDb.length == 0) {
+    if (method == "GET") {
+      setHeader(res, 404);
+      sendEnum(res, "DataBases", data);
+    }
+    if (method == "POST") {
+      let body = [];
+      req.on("data", function (data) {
+        body.push(data);
+      });
+      req.on("end", function () {
+        let content;
+        body = JSON.parse(Buffer.concat(body).toString());
+        if (isDefined(body.name)) {
+          content = {
+            [body.name]: isDefined(body.tables) ? body.tables : [],
+          };
+          data.push(content);
+          writeFile(res, JSON.stringify(data));
+        } else {
+          setHeader(res, 404);
+          res.end('{ "message": "Must provide a database name"}');
+        }
+      });
+    }
   } else {
     if (!route || route == "/" || !selectedRoute) {
-      setHeader(res, 200);
-      sendEnum(res, "Routes", selectedDb);
+      if (method == "GET") {
+        setHeader(res, 200);
+        sendEnum(res, "Routes", selectedDb);
+      }
+      if (method == "POST") {
+        // create table
+      }
     } else {
       if (method == "GET") {
         if (!id || id == "/" || !selectedProperty) {
