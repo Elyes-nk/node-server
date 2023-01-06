@@ -33,6 +33,11 @@ function isDefined(variable) {
 
 function reqHandler(req, res) {
   const { url, method } = req;
+  const isGetMethod = method === "GET";
+  const isPostMethod = method === "POST";
+  const isPutMethod = method === "PUT";
+  const isDeleteMethod = method === "DELETE";
+
   const urlSplited = url.split("/");
 
   const db = urlSplited[1];
@@ -46,11 +51,10 @@ function reqHandler(req, res) {
   const selectedProperty = selectedRoute?.find((el) => el.id == id);
 
   if (!db || db == "/" || selectedDb.length == 0) {
-    if (method == "GET") {
+    if (isGetMethod) {
       setHeader(res, 404);
       sendEnum(res, "DataBases", data);
-    }
-    if (method == "POST") {
+    } else if (isPostMethod) {
       let body = [];
       req.on("data", function (data) {
         body.push(data);
@@ -69,18 +73,48 @@ function reqHandler(req, res) {
           res.end('{ "message": "Must provide a database name"}');
         }
       });
+    } else if (isPutMethod) {
+      //edit db
+      let body = [];
+      req.on("data", function (data) {
+        body.push(data);
+      });
+      req.on("end", function () {
+        let content;
+        body = JSON.parse(Buffer.concat(body).toString());
+        if (isDefined(body.id) && isDefined(body.name)) {
+          // delete table with id = id
+          content = {
+            [body.name]: isDefined(body.tables) ? body.tables : [],
+          };
+          data.push(content);
+          writeFile(res, JSON.stringify(data));
+        } else {
+          setHeader(res, 404);
+          res.end('{ "message": "Must provide a database name"}');
+        }
+      });
+      setHeader(res, 200);
+    } else if (isDeleteMethod) {
+      //delete db
+      setHeader(res, 200);
     }
   } else {
     if (!route || route == "/" || !selectedRoute) {
-      if (method == "GET") {
+      if (isGetMethod) {
         setHeader(res, 200);
         sendEnum(res, "Routes", selectedDb);
-      }
-      if (method == "POST") {
+      } else if (isPostMethod) {
         // create table
+      } else if (isPutMethod) {
+        //edit table
+        setHeader(res, 200);
+      } else if (isDeleteMethod) {
+        //delete table
+        setHeader(res, 200);
       }
     } else {
-      if (method == "GET") {
+      if (isGetMethod) {
         if (!id || id == "/" || !selectedProperty) {
           setHeader(res, 200);
           res.end(JSON.stringify(selectedRoute));
@@ -88,19 +122,13 @@ function reqHandler(req, res) {
           setHeader(res, 200);
           res.end(JSON.stringify(selectedProperty));
         }
-      } else if (method == "POST") {
-        //creaate db
-        //creaate table
+      } else if (isPostMethod) {
         //create property
         setHeader(res, 200);
-      } else if (method == "PUT") {
-        //edit db
-        //edit table
+      } else if (isPutMethod) {
         //edit property
         setHeader(res, 200);
-      } else if (method == "DELETE") {
-        //delete db
-        //delete table
+      } else if (isDeleteMethod) {
         //delete property
         setHeader(res, 200);
       }
