@@ -9,6 +9,7 @@ function setHeader(res, status) {
   res.writeHead(status, { "Content-type": "application/json" });
 }
 
+// Helper used to send a message with a map of values
 function sendEnum(res, name, value) {
   const keys = value?.map((el) => Object.keys(el)?.[0]);
   res.end(
@@ -19,7 +20,7 @@ function sendEnum(res, name, value) {
 }
 
 function writeFile(content) {
-  fs.writeFile("./db.js", content, (err) => {
+  fs.writeFile("./db.json", JSON.stringify(content), (err) => {
     if (err) {
       console.error(err);
     }
@@ -66,18 +67,24 @@ function reqHandler(req, res) {
       sendEnum(res, "DataBases", data);
     } else if (isPostMethod) {
       createDataBase(req, res);
+      setHeader(res, 200);
+      res.end('{ "message": "Database created successfully"}');
     } else if (isPutMethod) {
       updateDataBase(data, req, res);
+      setHeader(res, 200);
+      res.end('{ "message": "Database edited successfully"}');
     } else if (isDeleteMethod) {
       deleteDataBase(data, req, res);
       setHeader(res, 200);
+      res.end('{ "message": "Database deleted successfully"}');
     }
   } else {
-    if (!route || route == "/" || !selectedRoute) {
+    if (!route || route == "/" || selectedRoute.length == 0) {
       if (isGetMethod) {
         setHeader(res, 200);
         sendEnum(res, "Routes", selectedDb);
       } else if (isPostMethod) {
+        createTable(db, req, res);
         // create table
       } else if (isPutMethod) {
         //edit table
@@ -130,8 +137,7 @@ function createDataBase(req, res) {
         [body.name]: isDefined(body.tables) ? body.tables : [],
       };
       data.push(content);
-      writeFile(res, JSON.stringify(data));
-      setHeader(res, 200);
+      writeFile(data);
     } else {
       setHeader(res, 404);
       res.end('{ "message": "Must provide a database name"}');
@@ -161,4 +167,47 @@ function deleteDataBase(dataBase, req, res) {
 function updateDataBase(dataBase, req, res) {
   deleteDataBase(dataBase, req, res);
   createDataBase(req, res);
+}
+
+function createTable(dataBaseName, req, res) {
+  let body = [];
+  req.on("data", function (data) {
+    body.push(data);
+  });
+  req.on("end", function () {
+    let content;
+    body = JSON.parse(Buffer.concat(body).toString());
+    if (isDefined(body.name)) {
+      content = {
+        [body.name]: isDefined(body.properties) ? body.properties : [],
+      };
+      for (let i = 0; i < data.length; i++) {
+        if (Object.keys(data[i])[0] === dataBaseName) {
+          data[i][dataBaseName].push(content);
+        }
+      }
+      writeFile(data);
+    } else {
+      setHeader(res, 404);
+      res.end('{ "message": "Must provide a database name"}');
+    }
+  });
+}
+function deleteTable(dataBase, req, res) {
+  let body = [];
+  req.on("data", function (data) {
+    body.push(data);
+  });
+  req.on("end", function () {
+    body = JSON.parse(Buffer.concat(body).toString());
+    if (isDefined(body.name)) {
+      const filtredDataBase = dataBase.filter(
+        (el) => Object.keys(el)[0] !== body.name
+      );
+      writeFile(filtredDataBase);
+    } else {
+      setHeader(res, 404);
+      res.end('{ "message": "Must provide a database name"}');
+    }
+  });
 }
