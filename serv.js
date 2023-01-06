@@ -18,13 +18,17 @@ function sendEnum(res, name, value) {
   );
 }
 
-function writeFile(res, content) {
+function writeFile(content) {
   fs.writeFile("./db.js", content, (err) => {
     if (err) {
       console.error(err);
     }
-    setHeader(res, 200);
   });
+}
+
+function deleteDataBase(dataBase, name) {
+  const filtredDataBase = dataBase.filter((el) => Object.keys(el)[0] !== name);
+  writeFile(filtredDataBase);
 }
 
 function isDefined(variable) {
@@ -50,6 +54,17 @@ function reqHandler(req, res) {
   const id = urlSplited[3];
   const selectedProperty = selectedRoute?.find((el) => el.id == id);
 
+  /**
+   * Sequence of conditions
+   * No dataBase => GET all databases, POST create DB, PUT edit DB, DELETE delete DB (if DB name provided)
+   * database => check for table
+   *
+   * No table => GET all tables, POST create table, PUT edit table, DELETE delete tables (if table name provided)
+   * table => check for property
+   *
+   * No property id => GET all properties, POST create property, PUT edit property, DELETE delete property (if property id provided)
+   * property => send property infos
+   */
   if (!db || db == "/" || selectedDb.length == 0) {
     if (isGetMethod) {
       setHeader(res, 404);
@@ -68,6 +83,7 @@ function reqHandler(req, res) {
           };
           data.push(content);
           writeFile(res, JSON.stringify(data));
+          setHeader(res, 200);
         } else {
           setHeader(res, 404);
           res.end('{ "message": "Must provide a database name"}');
