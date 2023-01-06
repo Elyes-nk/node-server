@@ -26,11 +26,6 @@ function writeFile(content) {
   });
 }
 
-function deleteDataBase(dataBase, name) {
-  const filtredDataBase = dataBase.filter((el) => Object.keys(el)[0] !== name);
-  writeFile(filtredDataBase);
-}
-
 function isDefined(variable) {
   return variable != undefined;
 }
@@ -70,49 +65,11 @@ function reqHandler(req, res) {
       setHeader(res, 404);
       sendEnum(res, "DataBases", data);
     } else if (isPostMethod) {
-      let body = [];
-      req.on("data", function (data) {
-        body.push(data);
-      });
-      req.on("end", function () {
-        let content;
-        body = JSON.parse(Buffer.concat(body).toString());
-        if (isDefined(body.name)) {
-          content = {
-            [body.name]: isDefined(body.tables) ? body.tables : [],
-          };
-          data.push(content);
-          writeFile(res, JSON.stringify(data));
-          setHeader(res, 200);
-        } else {
-          setHeader(res, 404);
-          res.end('{ "message": "Must provide a database name"}');
-        }
-      });
+      createDataBase(req, res);
     } else if (isPutMethod) {
-      //edit db
-      let body = [];
-      req.on("data", function (data) {
-        body.push(data);
-      });
-      req.on("end", function () {
-        let content;
-        body = JSON.parse(Buffer.concat(body).toString());
-        if (isDefined(body.id) && isDefined(body.name)) {
-          // delete table with id = id
-          content = {
-            [body.name]: isDefined(body.tables) ? body.tables : [],
-          };
-          data.push(content);
-          writeFile(res, JSON.stringify(data));
-        } else {
-          setHeader(res, 404);
-          res.end('{ "message": "Must provide a database name"}');
-        }
-      });
-      setHeader(res, 200);
+      updateDataBase(data, req, res);
     } else if (isDeleteMethod) {
-      //delete db
+      deleteDataBase(data, req, res);
       setHeader(res, 200);
     }
   } else {
@@ -159,3 +116,49 @@ server.listen(port, hostname, (err) => {
   }
   console.log("SERVER is running 🔥 at port : " + port);
 });
+
+function createDataBase(req, res) {
+  let body = [];
+  req.on("data", function (data) {
+    body.push(data);
+  });
+  req.on("end", function () {
+    let content;
+    body = JSON.parse(Buffer.concat(body).toString());
+    if (isDefined(body.name)) {
+      content = {
+        [body.name]: isDefined(body.tables) ? body.tables : [],
+      };
+      data.push(content);
+      writeFile(res, JSON.stringify(data));
+      setHeader(res, 200);
+    } else {
+      setHeader(res, 404);
+      res.end('{ "message": "Must provide a database name"}');
+    }
+  });
+}
+
+function deleteDataBase(dataBase, req, res) {
+  let body = [];
+  req.on("data", function (data) {
+    body.push(data);
+  });
+  req.on("end", function () {
+    body = JSON.parse(Buffer.concat(body).toString());
+    if (isDefined(body.name)) {
+      const filtredDataBase = dataBase.filter(
+        (el) => Object.keys(el)[0] !== body.name
+      );
+      writeFile(filtredDataBase);
+    } else {
+      setHeader(res, 404);
+      res.end('{ "message": "Must provide a database name"}');
+    }
+  });
+}
+
+function updateDataBase(dataBase, req, res) {
+  deleteDataBase(dataBase, req, res);
+  createDataBase(req, res);
+}
