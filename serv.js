@@ -85,12 +85,9 @@ function reqHandler(req, res) {
         sendEnum(res, "Routes", selectedDb);
       } else if (isPostMethod) {
         createTable(db, req, res);
-        // create table
       } else if (isPutMethod) {
-        //edit table
         setHeader(res, 200);
       } else if (isDeleteMethod) {
-        //delete table
         setHeader(res, 200);
       }
     } else {
@@ -103,13 +100,10 @@ function reqHandler(req, res) {
           res.end(JSON.stringify(selectedProperty));
         }
       } else if (isPostMethod) {
-        //create property
         setHeader(res, 200);
       } else if (isPutMethod) {
-        //edit property
         setHeader(res, 200);
       } else if (isDeleteMethod) {
-        //delete property
         setHeader(res, 200);
       }
     }
